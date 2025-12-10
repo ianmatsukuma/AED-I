@@ -15,11 +15,11 @@ int main() {
         int V, A;
         scanf("%d %d", &V, &A);
 
-        /* Usaremos um array de listas encadeadas para deduplicar arestas */
-        int maxV = V > 50 ? V : 50; /* segurança mínima */
+        
+        int maxV = V > 50 ? V : 50; 
         Pair **buckets = (Pair**) calloc(maxV, sizeof(Pair*));
 
-        /* Vetor dinâmico para armazenar arestas únicas em lista */
+        
         int cap = A + 5;
         int *eu = (int*) malloc(sizeof(int) * cap);
         int *ev = (int*) malloc(sizeof(int) * cap);
@@ -30,7 +30,7 @@ int main() {
             scanf("%d %d", &a, &b);
             int x = a < b ? a : b;
             int y = a < b ? b : a;
-            /* cheque rápido em bucket x para ver se (x,y) já existe */
+         
             int found = 0;
             if (x < maxV) {
                 for (Pair *p = buckets[x]; p != NULL; p = p->next) {
@@ -53,7 +53,7 @@ int main() {
             }
         }
 
-        /* construir lista de adjacência para o grafo simples (somente arestas únicas) */
+        
         int *deg = (int*) calloc(V, sizeof(int));
         for (int i = 0; i < unique; i++) {
             deg[eu[i]]++;
@@ -67,7 +67,7 @@ int main() {
             Pair *p2 = (Pair*) malloc(sizeof(Pair)); p2->u = x; p2->v = -1; p2->next = adj[y]; adj[y] = p2;
         }
 
-        /* DFS/BFS a partir de start para marcar vértices alcançáveis */
+      
         int *seen = (int*) calloc(V, sizeof(int));
         int *stack = (int*) malloc(sizeof(int) * V);
         int top = 0;
@@ -86,7 +86,7 @@ int main() {
             }
         }
 
-        /* contar arestas únicas cujo ambos extremos são alcançáveis */
+       
         int cnt = 0;
         for (int i = 0; i < unique; i++) {
             if (eu[i] >= 0 && eu[i] < V && ev[i] >= 0 && ev[i] < V) {
@@ -96,7 +96,7 @@ int main() {
 
         printf("%d\n", 2 * cnt);
 
-        /* liberar memória alocada */
+        
         for (int i = 0; i < maxV; i++) {
             Pair *p = buckets[i];
             while (p) {
