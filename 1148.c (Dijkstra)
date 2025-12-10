@@ -1,0 +1,191 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAXN 500
+#define MAXE 250000
+#define INF 0x3f3f3f3f
+
+// ------ estruturas do grafo ------
+int head[MAXN+1], to[MAXE], cost[MAXE], next[MAXE], edge_count;
+int rhead[MAXN+1], rto[MAXE], rnext[MAXE]; // grafo reverso
+int order[MAXN+1], ord_count;
+int comp[MAXN+1], comp_id;
+int visited[MAXN+1];
+
+// Dijkstra
+int distv[MAXN+1];
+int used[MAXN+1];
+
+// Heap p/ Dijkstra
+typedef struct {
+    int v, dist;
+} Node;
+
+Node heap[MAXE];
+int hsize;
+
+void heap_push(int v, int d) {
+    int i = hsize++;
+    heap[i].v = v;
+    heap[i].dist = d;
+    while (i > 0) {
+        int p = (i - 1) / 2;
+        if (heap[p].dist <= heap[i].dist) break;
+        Node tmp = heap[p]; heap[p] = heap[i]; heap[i] = tmp;
+        i = p;
+    }
+}
+
+Node heap_pop() {
+    Node ret = heap[0];
+    heap[0] = heap[--hsize];
+
+    int i = 0;
+    while (1) {
+        int l = 2*i+1, r = 2*i+2, smallest = i;
+        if (l < hsize && heap[l].dist < heap[smallest].dist) smallest = l;
+        if (r < hsize && heap[r].dist < heap[smallest].dist) smallest = r;
+        if (smallest == i) break;
+        Node tmp = heap[i]; heap[i] = heap[smallest]; heap[smallest] = tmp;
+        i = smallest;
+    }
+    return ret;
+}
+
+// ----- adiciona aresta -----
+void add_edge(int u, int v, int w) {
+    to[edge_count] = v;
+    cost[edge_count] = w;
+    next[edge_count] = head[u];
+    head[u] = edge_count;
+
+    // reverso
+    rto[edge_count] = u;
+    rnext[edge_count] = rhead[v];
+    rhead[v] = edge_count;
+
+    edge_count++;
+}
+
+// ----- Kosaraju para SCC -----
+void dfs1(int u) {
+    visited[u] = 1;
+    for (int e = head[u]; e != -1; e = next[e]) {
+        int v = to[e];
+        if (!visited[v]) dfs1(v);
+    }
+    order[ord_count++] = u;
+}
+
+void dfs2(int u) {
+    comp[u] = comp_id;
+    for (int e = rhead[u]; e != -1; e = rnext[e]) {
+        int v = rto[e];
+        if (!visited[v]) {
+            visited[v] = 1;
+            dfs2(v);
+        }
+    }
+}
+
+// ------ Dijkstra ------
+int dijkstra(int start, int target, int N) {
+    for (int i = 1; i <= N; i++) {
+        distv[i] = INF;
+        used[i] = 0;
+    }
+
+    hsize = 0;
+    distv[start] = 0;
+    heap_push(start, 0);
+
+    while (hsize > 0) {
+        Node nd = heap_pop();
+        int u = nd.v;
+
+        if (used[u]) continue;
+        used[u] = 1;
+        if (u == target) return distv[u];
+
+        for (int e = head[u]; e != -1; e = next[e]) {
+            int v = to[e];
+            int ndist = distv[u] + cost[e];
+            if (ndist < distv[v]) {
+                distv[v] = ndist;
+                heap_push(v, ndist);
+            }
+        }
+    }
+    return INF;
+}
+
+int main() {
+    int N, E;
+
+    while (scanf("%d %d", &N, &E) == 2 && !(N == 0 && E == 0)) {
+
+        // reset
+        memset(head, -1, sizeof(head));
+        memset(rhead, -1, sizeof(rhead));
+        edge_count = 0;
+
+        // lê acordos
+        for (int i = 0; i < E; i++) {
+            int X, Y, H;
+            scanf("%d %d %d", &X, &Y, &H);
+            add_edge(X, Y, H);
+        }
+
+        // ---- Kosaraju para SCC ----
+        memset(visited, 0, sizeof(visited));
+        ord_count = 0;
+
+        for (int i = 1; i <= N; i++)
+            if (!visited[i]) dfs1(i);
+
+        memset(visited, 0, sizeof(visited));
+        comp_id = 0;
+
+        for (int i = ord_count - 1; i >= 0; i--) {
+            int u = order[i];
+            if (!visited[u]) {
+                visited[u] = 1;
+                dfs2(u);
+                comp_id++;
+            }
+        }
+
+        // Teleportes (custo ZERO):
+        // Para cada par u→v se estão na mesma SCC adicionamos aresta 0.
+        // Em N=500, comp_id pequeno, dá pra fazer assim:
+        for (int i = 1; i <= N; i++) {
+            for (int j = i + 1; j <= N; j++) {
+                if (comp[i] == comp[j]) {
+                    add_edge(i, j, 0);
+                    add_edge(j, i, 0);
+                }
+            }
+        }
+
+        // consultas
+        int K; 
+        scanf("%d", &K);
+
+        while (K--) {
+            int O, D;
+            scanf("%d %d", &O, &D);
+
+            int r = dijkstra(O, D, N);
+            if (r == INF)
+                printf("Nao e possivel entregar a carta\n");
+            else
+                printf("%d\n", r);
+        }
+
+        printf("\n");
+    }
+
+    return 0;
+}
